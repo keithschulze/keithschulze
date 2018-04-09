@@ -1,0 +1,21 @@
+{
+  "name": "keithschulze.github.io",
+  "version": "0.1.0",
+  "description": "Website for Keith Schulze",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keithschulze.github.io"
+  },
+  "author": "Keith Schulze",
+  "license": "MIT",
+  "dependencies": {
+    "bootstrap": "^4.0.0",
+    "less": "^3.0.1",
+    "nord": "^0.2.1",
+    "npm": "^5.7.1"
+  }
+}
