@@ -16,8 +16,8 @@ import                      Text.Regex.TDFA hiding (match)
 --------------------------------------------------------------------------------
 main :: IO ()
 main = hakyll $ do
-    preprocess $
-        callCommand "npm install"
+    -- preprocess $
+    --     callCommand "npm install"
 
     match "node_modules/bootstrap/dist/css/bootstrap.min.*" $ do
         route idRoute
@@ -68,8 +68,9 @@ main = hakyll $ do
         route $ setExtension "html"
         let pCtx = postCtxWithTags tags
         compile $ pandocCompiler
-            >>= applyFilter withBootstrapTables'
+            >>= applyFilter (withBootstrapTables . withBootstrapQuotes . withBootstrapImgs)
             >>= loadAndApplyTemplate "templates/post.html"    pCtx
+            >>= saveSnapshot "content"
             >>= loadAndApplyTemplate "templates/default.html" pCtx
             >>= relativizeUrls
 
@@ -86,6 +87,15 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
                 >>= loadAndApplyTemplate "templates/default.html" archiveCtx
                 >>= relativizeUrls
+
+    create ["atom.xml"] $ do
+        route idRoute
+        compile $ do
+            let feedCtx = postCtx `mappend` bodyField "description"
+
+            posts <- fmap (take 10) . recentFirst =<<
+                loadAllSnapshots "posts/*" "content"
+            renderAtom feedConfig feedCtx posts
 
 
     match "index.html" $ do
@@ -106,6 +116,15 @@ main = hakyll $ do
 
 
 --------------------------------------------------------------------------------
+feedConfig :: FeedConfiguration
+feedConfig = FeedConfiguration
+    { feedTitle       = "keithschulze.com"
+    , feedDescription = "Functional (and not so functional) Programming"
+    , feedAuthorName  = "Keith Schulze"
+    , feedAuthorEmail = "keith.schulze@gmail.com"
+    , feedRoot        = "https://keithschulze.com"
+    }
+
 postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y" `mappend`
@@ -122,7 +141,7 @@ tagsFld = tagsFieldWith getTags tagRenderLink (mconcat . intersperse "")
 tagRenderLink :: String -> (Maybe FilePath) -> Maybe H.Html
 tagRenderLink _   Nothing         = Nothing
 tagRenderLink tag (Just filePath) =
-  Just $ H.a ! A.href (toValue $ toUrl filePath) ! A.id "tag" $ toHtml tag
+  Just $ H.a ! A.href (toValue $ toUrl filePath) ! A.class_ "tag" $ toHtml tag
 
 pandocWriterOpts :: WriterOptions
 pandocWriterOpts = def
@@ -134,29 +153,28 @@ pandocWriterOpts = def
 applyFilter :: (Monad m, Functor f) => (String -> String) -> f String -> m (f String)
 applyFilter f i = return $ fmap f i
 
-processTables :: String -> String
-processTables i =
-  replaceAll "\n<table(.|\n)+</table>\n" processTable i
-
-processTable :: String -> String
-processTable ts
-  | [_, attr, body]:_ <- ts =~ ("\n<table(.*)>(.+)</table>\n" :: String) :: [[String]] =
-    "\n<div class=\"table-responsive-md\">\n<table " ++ attr ++ " class=\"table table-striped table-dark\">" ++ body ++ "</table>\n</div>\n"
-  | otherwise = ts
-
-withBootstrapTables :: String -> String
-withBootstrapTables = withTags tag
+withBootstrapQuotes :: String -> String
+withBootstrapQuotes = withTags tag
     where
-        tag (TS.TagOpen "table" attrs) = TS.TagOpen "table" (attrs ++ [("class","table table-striped table-dark")])
+        tag (TS.TagOpen "blockquote" attrs) = TS.TagOpen "blockquote" (attrs ++ [("class","blockquote text-right")])
         tag x = x
 
-withBootstrapTables' :: String -> String
-withBootstrapTables' = withTagList $ foldl bootstrapifyTables []
+withBootstrapImgs :: String -> String
+withBootstrapImgs = withTags tag
+    where
+        tag (TS.TagOpen "img" attrs) =
+            if elem "class" (fst $ unzip attrs)
+            then TS.TagOpen "img" attrs
+            else TS.TagOpen "img" (attrs ++ [("class", "img-fluid")])
+        tag x = x
+
+withBootstrapTables :: String -> String
+withBootstrapTables = withTagList $ foldl bootstrapifyTables []
 
 bootstrapifyTables :: [TS.Tag String] -> TS.Tag String -> [TS.Tag String]
 bootstrapifyTables z el =
     case el of
-        TS.TagOpen "table" attrs -> z ++ [beforeDiv, TS.TagOpen "table" (attrs ++ [("class","table table-striped table-dark")])]
+        TS.TagOpen "table" attrs -> z ++ [beforeDiv, TS.TagOpen "table" (attrs ++ [("class","table table-sm table-striped table-dark")])]
         _  -> if (isTagCloseName "table" el)
                   then z ++ [el, afterDiv]
                   else z ++ [el]

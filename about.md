@@ -2,7 +2,7 @@
 title: About
 ---
 
-## Nine things to know about me
+## 9 things to know about me
 
 1. I'm a biologist turned coder and bio-image informatician.
 
