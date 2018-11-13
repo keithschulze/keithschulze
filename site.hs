@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
+import                      Control.Monad
 import                      Data.Monoid (mappend)
 import                      Data.List (intersperse)
 import                      Debug.Trace
 import                      Hakyll
 import                      KS.Config
+import                      System.Environment
 import                      System.Process
 import                      Text.Blaze.Html (toHtml, toValue, (!))
 import qualified            Text.Blaze.Html5 as H
@@ -14,11 +16,41 @@ import                      Text.Pandoc.Options
 import                      Text.Regex.TDFA hiding (match)
 
 --------------------------------------------------------------------------------
-main :: IO ()
-main = hakyll $ do
-    -- preprocess $
-    --     callCommand "npm install"
 
+hakyllConf :: Configuration
+hakyllConf = defaultConfiguration
+
+cleanWatch :: IO ()
+cleanWatch = do
+  remove "_watch"
+  remove "_watchCache"
+  where
+    remove dir = do
+      putStrLn $ "Removing " ++ dir ++ "..."
+      removeDirectory dir
+
+main :: IO ()
+main = do
+  (action:_) <- getArgs
+
+  let preview = action == "watch"
+      clean = action == "clean"
+      hakyllConf' =
+        if preview
+          then hakyllConf
+            { destinationDirectory = "_watch"
+            , storeDirectory = "_watchCache"
+            , tmpDirectory = "_watchCache/tmp"
+            }
+          else hakyllConf
+      postsPattern =
+        if preview
+          then "posts/*" .||. "drafts/*"
+          else "posts/*"
+
+  when clean cleanWatch
+
+  hakyllWith hakyllConf' $ do
     match "node_modules/bootstrap/dist/css/bootstrap.min.*" $ do
         route idRoute
         compile copyFileCompiler
@@ -48,7 +80,7 @@ main = hakyll $ do
             >>= relativizeUrls
 
     -- build up tags
-    tags <- buildTags "posts/*" (fromCapture "tags/*.html")
+    tags <- buildTags postsPattern (fromCapture "tags/*.html")
 
     tagsRules tags $ \tag pattern -> do
         let title = "Posts tagged \"" ++ tag ++ "\""
@@ -64,7 +96,7 @@ main = hakyll $ do
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
 
-    match "posts/*" $ do
+    match postsPattern $ do
         route $ setExtension "html"
         let pCtx = postCtxWithTags tags
         compile $ pandocCompiler
@@ -77,7 +109,7 @@ main = hakyll $ do
     create ["archive.html"] $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
+            posts <- recentFirst =<< loadAll postsPattern
             let archiveCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Archives"            `mappend`
@@ -101,7 +133,7 @@ main = hakyll $ do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
+            posts <- recentFirst =<< loadAll postsPattern
             let indexCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Welcome"                `mappend`
@@ -119,7 +151,7 @@ main = hakyll $ do
 feedConfig :: FeedConfiguration
 feedConfig = FeedConfiguration
     { feedTitle       = "keithschulze.com"
-    , feedDescription = "Functional (and not so functional) Programming"
+    , feedDescription = "Exploring functional (and not so functional) Programming"
     , feedAuthorName  = "Keith Schulze"
     , feedAuthorEmail = "keith.schulze@gmail.com"
     , feedRoot        = "https://keithschulze.com"
@@ -153,12 +185,14 @@ pandocWriterOpts = def
 applyFilter :: (Monad m, Functor f) => (String -> String) -> f String -> m (f String)
 applyFilter f i = return $ fmap f i
 
+-- | Bootstrapifying quotes
 withBootstrapQuotes :: String -> String
 withBootstrapQuotes = withTags tag
     where
         tag (TS.TagOpen "blockquote" attrs) = TS.TagOpen "blockquote" (attrs ++ [("class","blockquote text-right")])
         tag x = x
 
+-- | Bootstrapifying imgs
 withBootstrapImgs :: String -> String
 withBootstrapImgs = withTags tag
     where
@@ -168,6 +202,7 @@ withBootstrapImgs = withTags tag
             else TS.TagOpen "img" (attrs ++ [("class", "img-fluid")])
         tag x = x
 
+-- | Bootstrapifying tables
 withBootstrapTables :: String -> String
 withBootstrapTables = withTagList $ foldl bootstrapifyTables []
 

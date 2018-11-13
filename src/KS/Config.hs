@@ -3,6 +3,8 @@ module KS.Config where
 
 import Hakyll
 
+import qualified Hakyll.Core.Configuration as Config
+
 data EngineConfiguration = EngineConfiguration
     { lessCommand :: String
     , lessFiles :: [Identifier]

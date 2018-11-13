@@ -23,6 +23,8 @@ cabal.project.local
 ### Hakyll ###
 _site
 _cache
+_watch
+_watchCache
 
 ### Node ###
 # Logs
