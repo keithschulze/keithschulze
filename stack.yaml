@@ -2,5 +2,4 @@ flags: {}
 packages:
 - .
 extra-deps:
-- haddock-library-1.4.3
-resolver: lts-11.3
+resolver: lts-12.18
