@@ -45,8 +45,8 @@ main = do
           else hakyllConf
       postsPattern =
         if preview
-          then "posts/*" .||. "drafts/*"
-          else "posts/*"
+          then "posts/**" .||. "drafts/**"
+          else "posts/**"
 
   when clean cleanWatch
 
@@ -86,9 +86,9 @@ main = do
         let title = tag ++ " posts"
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll pattern
+            posts <- recentFirst =<< loadAllSnapshots pattern "content"
             let ctx = constField "title" title
-                      `mappend` listField "posts" postCtx (return posts)
+                      `mappend` listField "posts" (teaserCtx tags) (return posts)
                       `mappend` defaultContext
 
             makeItem ""
@@ -96,22 +96,36 @@ main = do
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
 
+    -- series <- buildCategories postsPattern (fromCapture "series/*.html")
+
+    -- tagsRules series $ \s pattern -> do
+    --     route idRoute
+    --     compile $ do
+    --         posts <- recentFirst =<< loadAllSnapshots pattern "content"
+    --         let ctx = constField "title" s
+    --                   `mappend` listField "posts" (teaserCtx tags) (return posts)
+    --                   `mappend` defaultContext
+    --         makeItem ""
+    --             >>= loadAndApplyTemplate "templates/tag.html" ctx
+    --             >>= loadAndApplyTemplate "templates/default.html" ctx
+    --             >>= relativizeUrls
+
     match postsPattern $ do
         route $ setExtension "html"
         let pCtx = postCtxWithTags tags
         compile $ pandocCompiler
             >>= applyFilter (withBootstrapTables . withBootstrapQuotes . withBootstrapImgs)
-            >>= loadAndApplyTemplate "templates/post.html"    pCtx
             >>= saveSnapshot "content"
+            >>= loadAndApplyTemplate "templates/post.html"    pCtx
             >>= loadAndApplyTemplate "templates/default.html" pCtx
             >>= relativizeUrls
 
     create ["archive.html"] $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll postsPattern
+            posts <- recentFirst =<< loadAllSnapshots postsPattern "content"
             let archiveCtx =
-                    listField "posts" postCtx (return posts) `mappend`
+                    listField "posts" (teaserCtx tags) (return posts) `mappend`
                     constField "title" "Archives"            `mappend`
                     defaultContext
 
@@ -133,10 +147,10 @@ main = do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll postsPattern
+            posts <- recentFirst =<< loadAllSnapshots postsPattern "content"
             let indexCtx =
-                    listField "posts" postCtx (return posts) `mappend`
-                    constField "title" "Welcome"                `mappend`
+                    listField "posts" (teaserCtx tags) (return posts)    `mappend`
+                    constField "title" ""                       `mappend`
                     defaultContext
 
             getResourceBody
@@ -164,6 +178,8 @@ postCtx =
 
 postCtxWithTags :: Tags -> Context String
 postCtxWithTags tags = tagsFld "tags" tags `mappend` postCtx
+
+teaserCtx tags = teaserField "teaser" "content" `mappend` postCtxWithTags tags
 
 -- | Custom tag rendering
 tagsFld :: String -> Tags -> Context a
