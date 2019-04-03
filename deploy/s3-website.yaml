@@ -1,0 +1,111 @@
+Parameters:
+  RootDomainName:
+    Description: Domain name for your website (example.com)
+    Type: String
+Resources:
+  KSRootBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref RootDomainName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+  KSBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: RootBucketPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref KSRootBucket
+                - /*
+            Principal:
+              CanonicalUser: !GetAtt KSCloudFrontOAI.S3CanonicalUserId
+      Bucket: !Ref KSRootBucket
+  # KSWWWBucket:
+  #   Type: AWS::S3::Bucket
+  #   Properties:
+  #     BucketName: !Sub
+  #         - www.${Domain}
+  #         - Domain: !Ref RootDomainName
+  #     AccessControl: BucketOwnerFullControl
+  #     WebsiteConfiguration:
+  #       RedirectAllRequestsTo:
+  #         HostName: !Ref KSRootBucket
+  KSCloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub 'CloudFront OAI for ${RootDomainName}'
+  KSDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+        - DomainName: !GetAtt KSRootBucket.DomainName
+          Id: !Ref KSRootBucket
+          S3OriginConfig:
+            OriginAccessIdentity: !Join [ "", [ "origin-access-identity/cloudfront/", !Ref KSCloudFrontOAI ] ]
+        Enabled: 'true'
+        DefaultRootObject: index.html
+        Aliases:
+        - !Ref RootDomainName
+        - !Sub
+            - www.${Domain}
+            - Domain: !Ref RootDomainName
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          TargetOriginId: !Ref KSRootBucket
+          ForwardedValues:
+            QueryString: true
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          AcmCertificateArn: arn:aws:acm:us-east-1:801592206232:certificate/c15e6f9d-3d85-4358-acd6-635040aae6fb
+  KSDNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub
+          - ${Domain}.
+          - Domain: !Ref RootDomainName
+      Comment: Zone apex alias.
+      RecordSets:
+      -
+        Name: !Ref RootDomainName
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt KSDistribution.DomainName
+      -
+        Name: !Sub
+            - www.${Domain}
+            - Domain: !Ref RootDomainName
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt KSDistribution.DomainName
+
+Outputs:
+  BucketURL:
+    Value: !GetAtt KSRootBucket.DomainName
+    Description: URL for S3 bucket
+  WebsiteURL:
+    Value: !GetAtt KSDistribution.DomainName
+    Description: URL for CloudFront distribution

@@ -43,6 +43,8 @@ main = do
             , tmpDirectory = "_watchCache/tmp"
             }
           else hakyllConf
+            { deployCommand = "deploy/deploy.sh keithschulze.com"
+            }
       postsPattern =
         if preview
           then "posts/**" .||. "drafts/**"
@@ -76,6 +78,7 @@ main = do
     match (fromList ["about.md", "contact.markdown"]) $ do
         route   $ setExtension "html"
         compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/post.html"    defaultContext
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
 
@@ -126,7 +129,7 @@ main = do
             posts <- recentFirst =<< loadAllSnapshots postsPattern "content"
             let archiveCtx =
                     listField "posts" (teaserCtx tags) (return posts) `mappend`
-                    constField "title" "Archives"            `mappend`
+                    constField "title" "All Posts"            `mappend`
                     defaultContext
 
             makeItem ""
@@ -142,7 +145,6 @@ main = do
             posts <- fmap (take 10) . recentFirst =<<
                 loadAllSnapshots "posts/*" "content"
             renderAtom feedConfig feedCtx posts
-
 
     match "index.html" $ do
         route idRoute
@@ -173,7 +175,7 @@ feedConfig = FeedConfiguration
 
 postCtx :: Context String
 postCtx =
-    dateField "date" "%B %e, %Y" `mappend`
+    dateField "date" "%e %B %Y" `mappend`
     defaultContext
 
 postCtxWithTags :: Tags -> Context String
@@ -225,7 +227,7 @@ withBootstrapTables = withTagList $ foldl bootstrapifyTables []
 bootstrapifyTables :: [TS.Tag String] -> TS.Tag String -> [TS.Tag String]
 bootstrapifyTables z el =
     case el of
-        TS.TagOpen "table" attrs -> z ++ [beforeDiv, TS.TagOpen "table" (attrs ++ [("class","table table-sm table-striped table-dark")])]
+        TS.TagOpen "table" attrs -> z ++ [beforeDiv, TS.TagOpen "table" (attrs ++ [("class","table table-sm table-striped table-bordered")])]
         _  -> if (isTagCloseName "table" el)
                   then z ++ [el, afterDiv]
                   else z ++ [el]

@@ -1,3 +1,5 @@
+[![Binder](http://mybinder.org/badge_logo.svg)](http://beta.mybinder.org/v2/gh/keithschulze/keithschulze/master)
+
 # keithschulze.com
 
 This is the code for my [Hakyll](https://jaspervdj.be/hakyll/)-based side.
