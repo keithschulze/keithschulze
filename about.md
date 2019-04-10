@@ -14,9 +14,9 @@ Clojure, R, Python, Java and others (in that order).
 
 5. I live in Melbourne, Australia.
 
-6. I currently work at MYOB, where I help to develop platforms for data management and analytics.
+6. I currently work at MYOB, where I help to build and operate platforms for data management and analytics.
 
-7. I enjoy playing sport--I've been known to run quite a lot.
+7. I enjoy playing sport--I've been known to run a little at lunch time.
 
 8. You can reach me by em@il at keith dot schulze at gmail dot com.
 
