@@ -152,7 +152,7 @@ main = do
             posts <- recentFirst =<< loadAllSnapshots postsPattern "content"
             let indexCtx =
                     listField "posts" (teaserCtx tags) (return posts)    `mappend`
-                    constField "title" ""                       `mappend`
+                    constField "title" "keithschulze.com"                `mappend`
                     defaultContext
 
             getResourceBody
