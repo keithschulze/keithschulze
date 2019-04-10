@@ -104,7 +104,7 @@ Resources:
 
 Outputs:
   BucketURL:
-    Value: !GetAtt KSRootBucket.DomainName
+    Value: !Ref KSRootBucket
     Description: URL for S3 bucket
   WebsiteURL:
     Value: !GetAtt KSDistribution.DomainName
