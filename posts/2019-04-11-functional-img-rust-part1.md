@@ -75,7 +75,7 @@ type Img<A> = Fn(Coord) -> A;
 
 The code block above doesn't actually compile because one can't alias traits in
 Rust, but there's a more general problem here: `Fn(Coord) -> A` is a trait (or
-type bound) rather than a type. Whatever type does represent our `Img<A>` needs
+type bound) rather than a type. Whatever type does represent `Img<A>`, needs
 to satisfy this bound/constraint (i.e., the type should have an instance of
 `Fn(Coord) -> A`), but it is not a type itself. I don't want to get too deep
 into all my initial misconceptions about closures in Rust, so I'll cut a long
@@ -115,7 +115,7 @@ impl <F> Region for F where F: Fn(Coord) -> bool {}
 Let's create a few example `Region`s from the book to get a feel for what it's
 like to synthesise images using this API.  Note, we'll see how to render
 bitmaps for an `Img` a little later in the post, but for now, just assume we
-can produce an image from our `Img`.  `vstrip` defines an infinite vertical
+can produce an image from an `Img`. `vstrip` defines an infinite vertical
 band centred on the y-axis of the image:
 
 ```rust
