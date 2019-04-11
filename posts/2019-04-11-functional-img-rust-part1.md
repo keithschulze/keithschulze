@@ -35,7 +35,7 @@ blog post on [binder](https://mybinder.org/):
 > <footer class="blockquote-footer">Conal Elliot, LambdaJam 2017</footer>
 
 This seemingly simple question typically yields an array of answers, usually
-including some mention of a 2D/3D arrays or matrices--that's precisely what
+including some mention of 2D/3D arrays or matrices--that's precisely what
 came to mind when I first thought about the question. It turns out there's a
 simpler and more elegant way to represent images: A function that takes a set
 of coordinates and produces a pixel value. In Haskell, it looks something like
